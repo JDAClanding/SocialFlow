@@ -27,6 +27,12 @@ class Competitor {
   Map<String, String> followers;
   List<CampaignRef> topCampaigns;
   List<String> picks;
+  // web search hits: each {title, snippet, url}
+  List<Map<String, String>> googleHits;
+  List<Map<String, String>> adHits;
+  // winning creatives: each {category, image, thumb, title, source, w, h}
+  List<Map<String, String>> graphics;
+  List<String> graphicPicks; // selected graphic image URLs
 
   Competitor({
     this.name = '',
@@ -34,10 +40,23 @@ class Competitor {
     Map<String, String>? followers,
     List<CampaignRef>? topCampaigns,
     List<String>? picks,
+    List<Map<String, String>>? googleHits,
+    List<Map<String, String>>? adHits,
+    List<Map<String, String>>? graphics,
+    List<String>? graphicPicks,
   })  : handles = handles ?? {},
         followers = followers ?? {},
         topCampaigns = topCampaigns ?? [],
-        picks = picks ?? [];
+        picks = picks ?? [],
+        googleHits = googleHits ?? [],
+        adHits = adHits ?? [],
+        graphics = graphics ?? [],
+        graphicPicks = graphicPicks ?? [];
+
+  static List<Map<String, String>> _hits(dynamic v) => ((v ?? []) as List)
+      .map((e) => Map<String, String>.from(
+          (e as Map).map((k, x) => MapEntry(k.toString(), x.toString()))))
+      .toList();
 
   factory Competitor.fromJson(Map<String, dynamic> j) => Competitor(
         name: j['name'] ?? '',
@@ -47,6 +66,10 @@ class Competitor {
             .map((e) => CampaignRef.fromJson(e as Map<String, dynamic>))
             .toList(),
         picks: List<String>.from(j['picks'] ?? []),
+        googleHits: _hits(j['googleHits']),
+        adHits: _hits(j['adHits']),
+        graphics: _hits(j['graphics']),
+        graphicPicks: List<String>.from(j['graphicPicks'] ?? []),
       );
   Map<String, dynamic> toJson() => {
         'name': name,
@@ -54,6 +77,10 @@ class Competitor {
         'followers': followers,
         'topCampaigns': topCampaigns.map((e) => e.toJson()).toList(),
         'picks': picks,
+        'googleHits': googleHits,
+        'adHits': adHits,
+        'graphics': graphics,
+        'graphicPicks': graphicPicks,
       };
 }
 
@@ -88,18 +115,28 @@ class Pillar {
 }
 
 class GalleryItem {
-  String url, title, prompt, pillar;
+  String url, title, prompt, pillar, model;
   GalleryItem(
-      {this.url = '', this.title = '', this.prompt = '', this.pillar = ''});
+      {this.url = '',
+      this.title = '',
+      this.prompt = '',
+      this.pillar = '',
+      this.model = ''});
 
   factory GalleryItem.fromJson(Map<String, dynamic> j) => GalleryItem(
         url: j['url'] ?? '',
         title: j['title'] ?? '',
         prompt: j['prompt'] ?? '',
         pillar: j['pillar'] ?? '',
+        model: j['model'] ?? '',
       );
-  Map<String, dynamic> toJson() =>
-      {'url': url, 'title': title, 'prompt': prompt, 'pillar': pillar};
+  Map<String, dynamic> toJson() => {
+        'url': url,
+        'title': title,
+        'prompt': prompt,
+        'pillar': pillar,
+        if (model.isNotEmpty) 'model': model,
+      };
 }
 
 class CalDay {
@@ -220,6 +257,13 @@ class AppState extends ChangeNotifier {
   List<CalDay>? calendar;
   Set<int> done = {};
 
+  // ── Device-local settings (never part of toJson → never uploaded/shared) ──
+  static const localKey = 'socialflow_local_v1';
+  int step = 0; // wizard step to reopen after a reload
+  String imageModel = 'auto';
+  Map<String, String> modelKeys = {}; // {ENV_NAME: api key}
+  String draftTitle = '', draftPrompt = '', draftRatio = '1:1';
+
   /// Persists to disk and rebuilds the UI. Call after every mutation
   /// (mirrors the web version's save()).
   void save() {
@@ -231,6 +275,16 @@ class AppState extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(storageKey, jsonEncode(toJson()));
+      await prefs.setString(
+          localKey,
+          jsonEncode({
+            'step': step,
+            'imageModel': imageModel,
+            'modelKeys': modelKeys,
+            'draftTitle': draftTitle,
+            'draftPrompt': draftPrompt,
+            'draftRatio': draftRatio,
+          }));
     } catch (_) {}
   }
 
@@ -238,8 +292,19 @@ class AppState extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(storageKey);
-      if (raw == null || raw.isEmpty) return;
-      fromJson(jsonDecode(raw) as Map<String, dynamic>);
+      if (raw != null && raw.isNotEmpty) {
+        fromJson(jsonDecode(raw) as Map<String, dynamic>);
+      }
+      final local = prefs.getString(localKey);
+      if (local != null && local.isNotEmpty) {
+        final l = jsonDecode(local) as Map<String, dynamic>;
+        step = (l['step'] as num?)?.toInt() ?? 0;
+        imageModel = l['imageModel']?.toString() ?? 'auto';
+        modelKeys = Map<String, String>.from(l['modelKeys'] ?? {});
+        draftTitle = l['draftTitle']?.toString() ?? '';
+        draftPrompt = l['draftPrompt']?.toString() ?? '';
+        draftRatio = l['draftRatio']?.toString() ?? '1:1';
+      }
       notifyListeners();
     } catch (_) {}
   }
@@ -296,6 +361,10 @@ class AppState extends ChangeNotifier {
     gallery = [];
     calendar = null;
     done = {};
+    // keep model choice & API keys; reset only the in-progress work
+    step = 0;
+    draftTitle = draftPrompt = '';
+    _persist();
     notifyListeners();
   }
 }

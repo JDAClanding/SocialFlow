@@ -13,7 +13,8 @@ import '../widgets.dart';
 
 class DashboardScreen extends StatefulWidget {
   final VoidCallback onBack, onNext;
-  const DashboardScreen({super.key, required this.onBack, required this.onNext});
+  const DashboardScreen(
+      {super.key, required this.onBack, required this.onNext});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -51,7 +52,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       children: [
         StepHeader(
           crumb: 'STEP 8 · DASHBOARD',
-          title: '${s.brand.name.isEmpty ? 'Your campaign' : s.brand.name} — ready to run 🎉',
+          title:
+              '${s.brand.name.isEmpty ? 'Your campaign' : s.brand.name} — ready to run 🎉',
           lead: 'Everything you built, saved and shareable.',
         ),
         Wrap(
@@ -72,7 +74,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               const Text('Funnel balance',
                   style: TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w700, color: C.brand)),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: C.brand)),
               const SizedBox(height: 8),
               if (byStage.isEmpty)
                 const Text('Generate the calendar first.',
@@ -84,7 +88,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
               const SizedBox(height: 8),
-              Text('Brand platform: ${s.strategy.platform.isEmpty ? '—' : s.strategy.platform}',
+              Text(
+                  'Brand platform: ${s.strategy.platform.isEmpty ? '—' : s.strategy.platform}',
                   style: const TextStyle(fontSize: 12.5, color: C.soft)),
             ],
           ),
@@ -96,7 +101,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               const Text('🔗 Client share link',
                   style: TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w700, color: C.brand)),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: C.brand)),
               const SizedBox(height: 6),
               const Text(
                   'Save the project to the cloud and get a clean read-only calendar link to send your client. They see only the final 30-day plan.',
@@ -124,7 +131,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         children: [
                           SfButton('Copy link', alt: true, onPressed: () {
                             Clipboard.setData(ClipboardData(text: shareUrl!));
-                            toast(context, 'Link copied — send it to your client');
+                            toast(context,
+                                'Link copied — send it to your client');
                           }),
                           SfButton('Open ↗', ghost: true, onPressed: () {
                             launchUrl(Uri.parse(shareUrl!),
@@ -144,19 +152,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               const Text('Export',
                   style: TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w700, color: C.brand)),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: C.brand)),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
                   SfButton('Copy .json', alt: true, onPressed: () {
-                    Clipboard.setData(
-                        ClipboardData(text: const JsonEncoder.withIndent('  ').convert(s.toJson())));
+                    Clipboard.setData(ClipboardData(
+                        text: const JsonEncoder.withIndent('  ')
+                            .convert(s.toJson())));
                     toast(context, 'JSON copied — paste it into any doc');
                   }),
                   SfButton('Copy calendar as text', alt: true, onPressed: () {
-                    if (s.calendar == null) return toast(context, 'Generate the calendar first');
+                    if (s.calendar == null) {
+                      return toast(context, 'Generate the calendar first');
+                    }
                     Clipboard.setData(ClipboardData(text: calendarAsText(s)));
                     toast(context, 'Copied — paste into any doc or scheduler');
                   }),
@@ -171,7 +184,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Text('Weekly operating rhythm',
                   style: TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w700, color: C.brand)),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: C.brand)),
               SizedBox(height: 6),
               Text(
                   'Mon: batch-create the week (3–4h) · Tue: schedule at peak windows · '

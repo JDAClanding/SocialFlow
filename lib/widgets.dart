@@ -17,6 +17,69 @@ class C {
   static const blue = Color(0xFF8A97A5);
 }
 
+/// Responsive breakpoints: phone < 700 ≤ tablet < 1100 ≤ desktop.
+enum ScreenSize { mobile, tablet, desktop }
+
+class Responsive {
+  static ScreenSize of(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    if (w < 700) return ScreenSize.mobile;
+    if (w < 1100) return ScreenSize.tablet;
+    return ScreenSize.desktop;
+  }
+
+  static bool isMobile(BuildContext context) =>
+      of(context) == ScreenSize.mobile;
+  static bool isDesktop(BuildContext context) =>
+      of(context) == ScreenSize.desktop;
+}
+
+/// Grid columns that keep tiles around [minTile] px wide at any width.
+int gridCols(double width, {double minTile = 180, int min = 2, int max = 8}) =>
+    (width / minTile).floor().clamp(min, max);
+
+/// Two columns side by side when there is room, stacked (left then right) otherwise.
+class SplitView extends StatelessWidget {
+  final List<Widget> left, right;
+  final int leftFlex, rightFlex;
+  final double breakpoint;
+  const SplitView({
+    super.key,
+    required this.left,
+    required this.right,
+    this.leftFlex = 1,
+    this.rightFlex = 1,
+    this.breakpoint = 1000,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, box) {
+      if (box.maxWidth < breakpoint) {
+        return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [...left, ...right]);
+      }
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+              flex: leftFlex,
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: left)),
+          const SizedBox(width: 18),
+          Expanded(
+              flex: rightFlex,
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: right)),
+        ],
+      );
+    });
+  }
+}
+
 void toast(BuildContext context, String msg) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
@@ -31,10 +94,14 @@ void toast(BuildContext context, String msg) {
 class StepHeader extends StatelessWidget {
   final String crumb, title, lead;
   const StepHeader(
-      {super.key, required this.crumb, required this.title, required this.lead});
+      {super.key,
+      required this.crumb,
+      required this.title,
+      required this.lead});
 
   @override
   Widget build(BuildContext context) {
+    final mobile = Responsive.isMobile(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -46,14 +113,19 @@ class StepHeader extends StatelessWidget {
                 fontWeight: FontWeight.w800)),
         const SizedBox(height: 8),
         Text(title,
-            style: const TextStyle(
+            style: TextStyle(
                 fontFamily: 'Georgia',
-                fontSize: 30,
+                fontSize: mobile ? 24 : 30,
                 color: C.brand,
                 fontWeight: FontWeight.w700)),
         const SizedBox(height: 6),
-        Text(lead, style: const TextStyle(color: C.soft, fontSize: 15)),
-        const SizedBox(height: 24),
+        ConstrainedBox(
+          // keep long intro lines readable on wide screens
+          constraints: const BoxConstraints(maxWidth: 900),
+          child: Text(lead,
+              style: TextStyle(color: C.soft, fontSize: mobile ? 14 : 15)),
+        ),
+        SizedBox(height: mobile ? 18 : 24),
       ],
     );
   }
@@ -73,14 +145,16 @@ class SfCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
-      padding: padding,
+      padding:
+          Responsive.isMobile(context) ? const EdgeInsets.all(14) : padding,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-            color: glow ? C.accent : C.line, width: glow ? 1.5 : 1),
+        border:
+            Border.all(color: glow ? C.accent : C.line, width: glow ? 1.5 : 1),
         boxShadow: const [
-          BoxShadow(color: Color(0x0D5B3A29), blurRadius: 10, offset: Offset(0, 2))
+          BoxShadow(
+              color: Color(0x0D5B3A29), blurRadius: 10, offset: Offset(0, 2))
         ],
       ),
       child: child,
@@ -93,13 +167,17 @@ class SfButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool alt, ghost, big;
   const SfButton(this.label,
-      {super.key, this.onPressed, this.alt = false, this.ghost = false, this.big = false});
+      {super.key,
+      this.onPressed,
+      this.alt = false,
+      this.ghost = false,
+      this.big = false});
 
   @override
   Widget build(BuildContext context) {
     final style = ButtonStyle(
-      backgroundColor: WidgetStateProperty.resolveWith((s) =>
-          ghost ? Colors.transparent : (alt ? C.cream : C.brand)),
+      backgroundColor: WidgetStateProperty.resolveWith(
+          (s) => ghost ? Colors.transparent : (alt ? C.cream : C.brand)),
       foregroundColor: WidgetStateProperty.resolveWith(
           (s) => ghost ? C.soft : (alt ? C.brand : Colors.white)),
       side: WidgetStateProperty.resolveWith((s) => ghost
@@ -107,8 +185,8 @@ class SfButton extends StatelessWidget {
           : BorderSide.none),
       padding: WidgetStateProperty.all(EdgeInsets.symmetric(
           horizontal: big ? 34 : 24, vertical: big ? 16 : 13)),
-      textStyle: WidgetStateProperty.all(TextStyle(
-          fontSize: big ? 17 : 14.5, fontWeight: FontWeight.w700)),
+      textStyle: WidgetStateProperty.all(
+          TextStyle(fontSize: big ? 17 : 14.5, fontWeight: FontWeight.w700)),
       shape: WidgetStateProperty.all(
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
       elevation: WidgetStateProperty.all(0),
@@ -136,8 +214,8 @@ class Pill extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(text,
-          style: TextStyle(
-              fontSize: 11, fontWeight: FontWeight.w700, color: c)),
+          style:
+              TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: c)),
     );
   }
 }
@@ -248,8 +326,7 @@ class ErrText extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(top: 10),
-      child: Text(message,
-          style: const TextStyle(color: C.rose, fontSize: 13)),
+      child: Text(message, style: const TextStyle(color: C.rose, fontSize: 13)),
     );
   }
 }
@@ -302,8 +379,8 @@ class SelCard extends StatelessWidget {
                     height: 20,
                     decoration: const BoxDecoration(
                         color: C.green, shape: BoxShape.circle),
-                    child: const Icon(Icons.check,
-                        size: 13, color: Colors.white),
+                    child:
+                        const Icon(Icons.check, size: 13, color: Colors.white),
                   ),
               ],
             ),
@@ -313,8 +390,7 @@ class SelCard extends StatelessWidget {
                 child: Text(snippet,
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
-                    style:
-                        const TextStyle(fontSize: 12, color: C.soft)),
+                    style: const TextStyle(fontSize: 12, color: C.soft)),
               ),
           ],
         ),
@@ -329,7 +405,10 @@ class Thumb extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   const Thumb(
-      {super.key, required this.url, this.selected = false, required this.onTap});
+      {super.key,
+      required this.url,
+      this.selected = false,
+      required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -345,7 +424,8 @@ class Thumb extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: AspectRatio(
           aspectRatio: 1,
-          child: Image.network(url, fit: BoxFit.cover,
+          child: Image.network(url,
+              fit: BoxFit.cover,
               errorBuilder: (_, __, ___) =>
                   const Icon(Icons.broken_image_outlined, color: C.soft)),
         ),

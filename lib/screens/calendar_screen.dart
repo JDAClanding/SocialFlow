@@ -61,7 +61,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
         const StepHeader(
           crumb: 'STEP 7 · 30-DAY CALENDAR',
           title: 'Your month at a glance',
-          lead: 'Tap any day to edit or generate its visual. Regenerate resets edits.',
+          lead:
+              'Tap any day to edit or generate its visual. Regenerate resets edits.',
         ),
         SfButton('↻ Regenerate', alt: true, onPressed: genCalendar),
         const SizedBox(height: 12),
@@ -75,66 +76,70 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     color: C.accent,
                     fontWeight: FontWeight.w700)),
           ),
-          GridView.count(
-            crossAxisCount: MediaQuery.of(context).size.width > 700
-                ? 7
-                : MediaQuery.of(context).size.width > 420
-                    ? 3
-                    : 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: .8,
-            children: [
-              for (final c in wk.value)
-                GestureDetector(
-                  onTap: () => _editDay(c),
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: C.line),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('${c.day}',
-                            style: const TextStyle(
-                                fontFamily: 'Georgia',
-                                fontSize: 19,
-                                color: C.accent,
-                                fontWeight: FontWeight.w700)),
-                        Text(c.title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.w700, color: C.brand)),
-                        Pill(c.stage, color: stageColor(c.stage)),
-                        Expanded(
-                          child: Text(c.format,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 10.5, color: C.soft)),
-                        ),
-                        if (c.refImage.isNotEmpty)
-                          Expanded(
-                            flex: 3,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(7),
-                              child: Image.network(c.refImage,
-                                  width: double.infinity,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+          LayoutBuilder(
+              builder: (context, box) => GridView.count(
+                    // a full week per row when tiles can be ≥120px wide, else 2–4 per row
+                    crossAxisCount: box.maxWidth >= 840
+                        ? 7
+                        : gridCols(box.maxWidth, minTile: 160, max: 4),
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: .8,
+                    children: [
+                      for (final c in wk.value)
+                        GestureDetector(
+                          onTap: () => _editDay(c),
+                          child: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: C.line),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('${c.day}',
+                                    style: const TextStyle(
+                                        fontFamily: 'Georgia',
+                                        fontSize: 19,
+                                        color: C.accent,
+                                        fontWeight: FontWeight.w700)),
+                                Text(c.title,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: C.brand)),
+                                Pill(c.stage, color: stageColor(c.stage)),
+                                Expanded(
+                                  child: Text(c.format,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                          fontSize: 10.5, color: C.soft)),
+                                ),
+                                if (c.refImage.isNotEmpty)
+                                  Expanded(
+                                    flex: 3,
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(7),
+                                      child: Image.network(c.refImage,
+                                          width: double.infinity,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) =>
+                                              const SizedBox.shrink()),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
-          ),
+                        ),
+                    ],
+                  )),
         ],
         NavRow(showBack: true, onBack: widget.onBack, onNext: widget.onNext),
       ],
@@ -170,12 +175,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 genErr = null;
               });
               try {
-                final url = await Api.genImage(p, '1:1', s.brand.productImages.take(1).toList());
+                final url = await Api.genImage(
+                    p, '1:1', s.brand.productImages.take(1).toList());
                 setSheet(() {
                   refImage = url;
                   genBusy = false;
                   s.gallery.add(GalleryItem(
-                      url: url, title: 'Day ${c.day} — ${c.title}', prompt: p, pillar: c.pillar));
+                      url: url,
+                      title: 'Day ${c.day} — ${c.title}',
+                      prompt: p,
+                      pillar: c.pillar));
                   s.save();
                 });
                 toast(ctx, 'Visual ready & attached');
@@ -205,8 +214,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             color: C.brand,
                             fontWeight: FontWeight.w700)),
                     const SizedBox(height: 10),
-                    Field('Title',
-                        TextField(controller: titleCtrl, decoration: sfInput())),
+                    Field(
+                        'Title',
+                        TextField(
+                            controller: titleCtrl, decoration: sfInput())),
                     Field(
                       'Stage',
                       ValueListenableBuilder<String>(
@@ -215,7 +226,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           initialValue: v,
                           decoration: sfInput(),
                           items: [
-                            for (final st in ['Awareness', 'Engagement', 'Conversion', 'Advocacy'])
+                            for (final st in [
+                              'Awareness',
+                              'Engagement',
+                              'Conversion',
+                              'Advocacy'
+                            ])
                               DropdownMenuItem(value: st, child: Text(st)),
                           ],
                           onChanged: (nv) => stageCtrl.value = nv ?? v,
@@ -224,10 +240,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     ),
                     Field('Platforms',
                         TextField(controller: platCtrl, decoration: sfInput())),
-                    Field('Format',
-                        TextField(controller: fmtCtrl, maxLines: 2, decoration: sfInput())),
-                    Field('Hook',
-                        TextField(controller: hookCtrl, maxLines: 2, decoration: sfInput())),
+                    Field(
+                        'Format',
+                        TextField(
+                            controller: fmtCtrl,
+                            maxLines: 2,
+                            decoration: sfInput())),
+                    Field(
+                        'Hook',
+                        TextField(
+                            controller: hookCtrl,
+                            maxLines: 2,
+                            decoration: sfInput())),
                     Field('CTA',
                         TextField(controller: ctaCtrl, decoration: sfInput())),
                     Field(
@@ -238,11 +262,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(9),
                                   child: Image.network(refImage,
-                                      width: 110, height: 110, fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                                      width: 110,
+                                      height: 110,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) =>
+                                          const SizedBox.shrink()),
                                 ),
                                 const SizedBox(width: 10),
-                                SfButton('Remove', ghost: true, onPressed: () => setSheet(() => refImage = '')),
+                                SfButton('Remove',
+                                    ghost: true,
+                                    onPressed: () =>
+                                        setSheet(() => refImage = '')),
                               ],
                             )
                           : const Text('None yet',
@@ -257,11 +287,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           itemCount: s.gallery.length,
                           separatorBuilder: (_, __) => const SizedBox(width: 8),
                           itemBuilder: (_, i) => GestureDetector(
-                            onTap: () => setSheet(() => refImage = s.gallery[i].url),
+                            onTap: () =>
+                                setSheet(() => refImage = s.gallery[i].url),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(8),
                               child: Image.network(s.gallery[i].url,
-                                  width: 76, height: 76, fit: BoxFit.cover,
+                                  width: 76,
+                                  height: 76,
+                                  fit: BoxFit.cover,
                                   errorBuilder: (_, __, ___) => const Icon(
                                       Icons.broken_image_outlined,
                                       color: C.soft)),
@@ -270,8 +303,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         ),
                       ),
                     ],
-                    Field('AI image prompt',
-                        TextField(controller: imgCtrl, maxLines: 3, decoration: sfInput())),
+                    Field(
+                        'AI image prompt',
+                        TextField(
+                            controller: imgCtrl,
+                            maxLines: 3,
+                            decoration: sfInput())),
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -302,7 +339,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           toast(context, 'Day ${c.day} saved');
                         }),
                         const SizedBox(width: 8),
-                        SfButton('Cancel', ghost: true, onPressed: () => Navigator.pop(ctx)),
+                        SfButton('Cancel',
+                            ghost: true, onPressed: () => Navigator.pop(ctx)),
                       ],
                     ),
                     const SizedBox(height: 20),

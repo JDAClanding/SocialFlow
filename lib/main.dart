@@ -62,16 +62,22 @@ class _HomeShellState extends State<HomeShell> {
     'Dashboard',
   ];
 
-  int cur = 0;
   final s = AppState.instance;
+  // Reopen on the step the user was on (persisted across reloads).
+  late int cur = s.step.clamp(0, steps.length - 1);
 
-  void go(int i) => setState(() => cur = i.clamp(0, steps.length - 1));
+  void go(int i) {
+    setState(() => cur = i.clamp(0, steps.length - 1));
+    s.step = cur;
+    s.save();
+  }
 
   void next() {
     setState(() {
       s.done.add(cur);
       if (cur < steps.length - 1) cur++;
     });
+    s.step = cur;
     s.save();
   }
 
@@ -90,16 +96,29 @@ class _HomeShellState extends State<HomeShell> {
                   onDot: go,
                 ),
                 Expanded(
-                  child: SingleChildScrollView(
-                    key: ValueKey(cur),
-                    padding: const EdgeInsets.fromLTRB(18, 32, 18, 90),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 900),
-                        child: _screenFor(cur),
+                  child: Builder(builder: (context) {
+                    final size = Responsive.of(context);
+                    final pad = switch (size) {
+                      ScreenSize.mobile =>
+                        const EdgeInsets.fromLTRB(14, 20, 14, 60),
+                      ScreenSize.tablet =>
+                        const EdgeInsets.fromLTRB(24, 28, 24, 80),
+                      ScreenSize.desktop =>
+                        const EdgeInsets.fromLTRB(40, 32, 40, 90),
+                    };
+                    return SingleChildScrollView(
+                      key: ValueKey(cur),
+                      padding: pad,
+                      child: Center(
+                        child: ConstrainedBox(
+                          // tablet: one comfortable column; desktop: room for two
+                          constraints: BoxConstraints(
+                              maxWidth: size == ScreenSize.tablet ? 960 : 1440),
+                          child: _screenFor(cur),
+                        ),
                       ),
-                    ),
-                  ),
+                    );
+                  }),
                 ),
               ],
             ),
@@ -141,8 +160,11 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mobile = Responsive.isMobile(context);
+    final desktop = Responsive.isDesktop(context);
+    final dot = mobile ? 26.0 : 30.0;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: EdgeInsets.symmetric(horizontal: mobile ? 10 : 16, vertical: 10),
       decoration: BoxDecoration(
         color: const Color(0xF2FFFDF9),
         border: Border(bottom: BorderSide(color: C.line)),
@@ -161,15 +183,17 @@ class _TopBar extends StatelessWidget {
                   fontSize: 19,
                   fontWeight: FontWeight.w700,
                   color: C.accent)),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-                color: C.gold, borderRadius: BorderRadius.circular(8)),
-            child: const Text('v13 · LIVE',
-                style: TextStyle(fontSize: 10, color: Colors.white)),
-          ),
-          const SizedBox(width: 12),
+          if (!mobile) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                  color: C.gold, borderRadius: BorderRadius.circular(8)),
+              child: const Text('v13 · LIVE',
+                  style: TextStyle(fontSize: 10, color: Colors.white)),
+            ),
+          ],
+          SizedBox(width: mobile ? 8 : 12),
           Expanded(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -184,8 +208,8 @@ class _TopBar extends StatelessWidget {
                         child: Tooltip(
                           message: _HomeShellState.steps[i],
                           child: Container(
-                            width: 30,
-                            height: 30,
+                            width: dot,
+                            height: dot,
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
@@ -211,6 +235,10 @@ class _TopBar extends StatelessWidget {
               ),
             ),
           ),
+          if (desktop)
+            Text('Step $cur · ${_HomeShellState.steps[cur]}',
+                style: const TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w700, color: C.soft)),
         ],
       ),
     );
